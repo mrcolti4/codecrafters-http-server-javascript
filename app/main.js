@@ -48,24 +48,19 @@ const server = net.createServer((socket) => {
       const directory = process.argv[3];
 
       const resolvedFilePath = path.resolve(directory, requestFilePath);
-
-      fs.stat(resolvedFilePath, async (err, stats) => {
-        if (err) {
-          socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-          return;
-        }
+      if (fs.existsSync(resolvedFilePath)) {
+        const content = fs.readFileSync(resolvedFilePath).toString();
         const responseHeaders = {
           "Content-Type": "application/octet-stream",
+          "Content-Length": content.length,
         };
-        fs.readFile(resolvedFilePath, (err, buffer) => {
-          const response = getResponse(responseHeaders, buffer);
-          responseHeaders["Content-Length"] = buffer.byteLength;
-          socket.write(response);
-        });
-      });
+        socket.write(getResponse(responseHeaders, content));
+      } else {
+        socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+      }
     } else {
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
     }
+    socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
   });
   socket.on("close", () => {
     socket.end();
