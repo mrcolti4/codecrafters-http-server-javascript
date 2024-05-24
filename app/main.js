@@ -7,17 +7,30 @@ const EventEmitter = require("node:events");
 const server = net.createServer((socket) => {
   socket.on("data", (data) => {
     const request = data.toString();
-    const requestTarget = request.split("\r\n")[0].split(" ")[1];
+    const splitedRequest = request.split("\r\n");
+    const requestTarget = splitedRequest[0].split(" ")[1];
 
     if (requestTarget === "/") {
       socket.write("HTTP/1.1 200 OK\r\n\r\n");
     } else if (requestTarget.startsWith("/echo/")) {
       const paramText = requestTarget.split("/echo/")[1];
       const headers = {
-        "Content-Type": "text/plain\r\n",
+        "Content-Type": "text/plain",
         "Content-Length": paramText.length,
       };
-      const response = `HTTP/1.1 200 OK\r\n${Object.entries(headers).join("").replace(/,/g, ": ")}\r\n\r\n${paramText}`;
+      const response = `HTTP/1.1 200 OK\r\n${Object.entries(headers).join("\r\n").replace(/,/g, ": ")}\r\n\r\n${paramText}`;
+      socket.write(response);
+    } else if (requestTarget.startsWith("/user-agent")) {
+      const userAgent = splitedRequest
+        .find((value) => value.startsWith("User-Agent"))
+        .split(": ")[1];
+
+      const responseHeaders = {
+        "Content-Type": "text/plain",
+        "Content-Length": userAgent.length,
+      };
+
+      const response = `HTTP/1.1 200 OK\r\n${Object.entries(responseHeaders).join("\r\n").replace(/,/g, ": ")}\r\n\r\n${userAgent}`;
       socket.write(response);
     } else {
       socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
