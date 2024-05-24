@@ -59,6 +59,7 @@ const server = net.createServer((socket) => {
         };
         fs.readFile(resolvedFilePath, (err, buffer) => {
           const response = getResponse(responseHeaders, buffer);
+          responseHeaders["Content-Length"] = buffer.byteLength;
           socket.write(response);
         });
       });
