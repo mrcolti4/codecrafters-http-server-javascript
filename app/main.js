@@ -62,7 +62,6 @@ const server = net.createServer((socket) => {
             "Content-Type": "application/octet-stream",
             "Content-Length": content.length,
           };
-          socket.write(`HTTP/1.1 404 No\r\n\r\n`);
           content
             ? socket.write(getResponse(responseHeaders, content))
             : socket.write(`HTTP/1.1 404 Not Found\r\n\r\n`);
