@@ -62,9 +62,10 @@ const server = net.createServer((socket) => {
             "Content-Type": "application/octet-stream",
             "Content-Length": content.length,
           };
+          socket.write(`HTTP/1.1 404 No\r\n\r\n`);
           content
             ? socket.write(getResponse(responseHeaders, content))
-            : socket.write(`HTTP/1.1 404 Not Found error\r\n\r\n`);
+            : socket.write(`HTTP/1.1 404 Not Found\r\n\r\n`);
           break;
         case "POST":
           const body = splitedRequest[splitedRequest.length - 1];
@@ -79,6 +80,7 @@ const server = net.createServer((socket) => {
     }
   });
   socket.on("close", () => {
+    socket.end();
     server.close();
   });
 });
