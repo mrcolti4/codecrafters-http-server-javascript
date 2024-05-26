@@ -53,7 +53,6 @@ const server = net.createServer((socket) => {
       const resolvedFilePath = path.resolve(directory, requestFilePath);
       switch (requestMethod) {
         case "GET":
-          console.log(requestMethod);
           try {
             const content = fs.readFileSync(resolvedFilePath).toString();
             const responseHeaders = {
@@ -64,6 +63,7 @@ const server = net.createServer((socket) => {
           } catch (err) {
             socket.write(httpResponse("404 Not Found"));
           }
+          break;
         case "POST":
           try {
             const body = splitedRequest[splitedRequest.length - 1];
@@ -72,6 +72,7 @@ const server = net.createServer((socket) => {
           } catch (err) {
             socket.write(httpResponse("404 Not Found"));
           }
+          break;
         default:
           break;
       }
