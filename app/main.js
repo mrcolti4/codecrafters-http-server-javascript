@@ -20,7 +20,7 @@ function httpResponse(message) {
 }
 
 function findFileAndGetContent(path) {
-  return fs.existsSync(path) && fs.openSync(path);
+  return fs.existsSync(path) && fs.readFileSync(path).toString();
 }
 
 const server = net.createServer((socket) => {
