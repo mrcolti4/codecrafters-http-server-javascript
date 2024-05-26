@@ -43,12 +43,13 @@ const server = net.createServer((socket) => {
       };
       const response = getResponse(responseHeaders, userAgent);
       socket.write(response);
-    } else if (requestTarget.startsWith("/files/")) {
+    } else if (requestTarget.startsWith("/files")) {
       const requestFilePath = requestTarget.split("/")[2];
       const directory = process.argv[3];
       const resolvedFilePath = path.resolve(directory, requestFilePath);
       switch (requestMethod) {
         case "GET":
+          console.log(requestMethod);
           if (fs.existsSync(resolvedFilePath)) {
             const content = fs.readFileSync(resolvedFilePath).toString();
             const responseHeaders = {
@@ -57,7 +58,7 @@ const server = net.createServer((socket) => {
             };
             socket.write(getResponse(responseHeaders, content));
           } else {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.write("HTTP/1.1 404 Not found\r\n\r\n");
           }
         case "POST":
           try {
