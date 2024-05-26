@@ -61,9 +61,10 @@ const server = net.createServer((socket) => {
           }
           break;
         case "POST":
+          const body = splitedRequest[splitedRequest.length - 1];
           try {
             fs.writeFileSync(resolvedFilePath, body);
-            socket.write("HTTP/1.1 201 File created");
+            socket.write();
           } catch (err) {
             socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
           }
