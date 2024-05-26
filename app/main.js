@@ -15,6 +15,10 @@ function getResponse(headers, body) {
   return response;
 }
 
+function httpResponse(message) {
+  return `HTTP/1.1 ${message}\r\n\r\n`;
+}
+
 const server = net.createServer((socket) => {
   socket.on("data", async (data) => {
     const request = data.toString();
@@ -23,7 +27,7 @@ const server = net.createServer((socket) => {
     const requestTarget = splitedRequest[0].split(" ")[1];
 
     if (requestTarget === "/") {
-      socket.write("HTTP/1.1 200 OK\r\n\r\n");
+      socket.write(httpResponse("200 OK"));
     } else if (requestTarget.startsWith("/echo/")) {
       const paramText = requestTarget.split("/echo/")[1];
       const headers = {
@@ -50,29 +54,29 @@ const server = net.createServer((socket) => {
       switch (requestMethod) {
         case "GET":
           console.log(requestMethod);
-          if (fs.existsSync(resolvedFilePath)) {
+          try {
             const content = fs.readFileSync(resolvedFilePath).toString();
             const responseHeaders = {
               "Content-Type": "application/octet-stream",
               "Content-Length": content.length,
             };
             socket.write(getResponse(responseHeaders, content));
-          } else {
-            socket.write("HTTP/1.1 404 Not found\r\n\r\n");
+          } catch (err) {
+            socket.write(httpResponse("404 Not Found"));
           }
         case "POST":
           try {
             const body = splitedRequest[splitedRequest.length - 1];
             fs.writeFileSync(resolvedFilePath, body);
-            socket.write("HTTP/1.1 201 Created\r\n\r\n");
+            socket.write(httpResponse("201 Created"));
           } catch (err) {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.write(httpResponse("404 Not Found"));
           }
         default:
           break;
       }
     } else {
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+      socket.write(httpResponse("404 Not Found"));
     }
   });
   socket.on("close", () => {
