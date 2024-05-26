@@ -77,7 +77,7 @@ const server = net.createServer((socket) => {
           };
           console.log(content);
           content
-            ? socket.write(fileResponse(responseHeaders, content))
+            ? socket.write(fileResponse(content))
             : socket.write(`HTTP/1.1 404 Not Found\r\n\r\n`);
           break;
         case "POST":
