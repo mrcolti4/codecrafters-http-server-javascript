@@ -15,12 +15,25 @@ function getResponse(headers, body) {
   return response;
 }
 
-function httpResponse(message) {
-  return `HTTP/1.1 ${message}\r\n\r\n`;
+function httpResponse(status, headers = [], body = "") {
+  const statusLine = `HTTP/1.1 ${status}\r\n`;
+  const headerLines = headers
+    .map(([key, value]) => `${key}:  ${value}\r\n`)
+    .join("");
+  return `${statusLine}${headerLines}\r\n${body}`;
 }
 
+function fileResponse(fd, extraHeaders = []) {
+  const body = fs.readFileSync(fd);
+  const headers = [
+    ["Content-Type", "application/octet-stream"],
+    ["Content-Length", body.length],
+    ...extraHeaders,
+  ];
+  return httpResponse("200 OK", headers, body);
+}
 function findFileAndGetContent(path) {
-  return fs.existsSync(path) && fs.readFileSync(path).toString();
+  return fs.existsSync(path) && fs.openSync(path);
 }
 
 const server = net.createServer((socket) => {
@@ -64,7 +77,7 @@ const server = net.createServer((socket) => {
           };
           console.log(content);
           content
-            ? socket.write(getResponse(responseHeaders, content))
+            ? socket.write(fileResponse(responseHeaders, content))
             : socket.write(`HTTP/1.1 404 Not Found\r\n\r\n`);
           break;
         case "POST":
