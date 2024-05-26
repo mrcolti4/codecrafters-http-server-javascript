@@ -15,25 +15,8 @@ function getResponse(headers, body) {
   return response;
 }
 
-function httpResponse(status, headers = [], body = "") {
-  const statusLine = `HTTP/1.1 ${status}\r\n`;
-  const headerLines = headers
-    .map(([key, value]) => `${key}:  ${value}\r\n`)
-    .join("");
-  return `${statusLine}${headerLines}\r\n${body}`;
-}
-
-function fileResponse(fd, extraHeaders = []) {
-  const body = fs.readFileSync(fd);
-  const headers = [
-    ["Content-Type", "application/octet-stream"],
-    ["Content-Length", body.length],
-    ...extraHeaders,
-  ];
-  return httpResponse("200 OK", headers, body);
-}
-function findFileAndGetContent(path) {
-  return fs.existsSync(path) && fs.openSync(path);
+function httpResponse(message) {
+  return `HTTP/1.1 ${message}\r\n\r\n`;
 }
 
 const server = net.createServer((socket) => {
@@ -70,15 +53,17 @@ const server = net.createServer((socket) => {
       const resolvedFilePath = path.resolve(directory, requestFilePath);
       switch (requestMethod) {
         case "GET":
-          const content = findFileAndGetContent(resolvedFilePath);
-          const responseHeaders = {
-            "Content-Type": "application/octet-stream",
-            "Content-Length": content.length,
-          };
-          console.log(content);
-          content
-            ? socket.write(fileResponse(content))
-            : socket.write(`HTTP/1.1 404 Not Found\r\n\r\n`);
+          console.log(requestMethod);
+          if (fs.existsSync(resolvedFilePath)) {
+            const content = fs.readFileSync(resolvedFilePath).toString();
+            const responseHeaders = {
+              "Content-Type": "application/octet-stream",
+              "Content-Length": content.length,
+            };
+            socket.write(getResponse(responseHeaders, content));
+          } else {
+            socket.write(httpResponse("404 Not Found"));
+          }
           break;
         case "POST":
           const body = splitedRequest[splitedRequest.length - 1];
