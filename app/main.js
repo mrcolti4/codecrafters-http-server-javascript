@@ -47,31 +47,24 @@ const server = net.createServer((socket) => {
       };
       const response = getResponse(responseHeaders, userAgent);
       socket.write(response);
-    } else if (requestTarget.startsWith("/files")) {
+    } else if (requestTarget.startsWith("/files") && requestMethod === "GET") {
       const requestFilePath = requestTarget.split("/")[2];
       const directory = process.argv[3];
       const resolvedFilePath = path.resolve(directory, requestFilePath);
-      switch (requestMethod) {
-        case "GET":
-          if (fs.existsSync(resolvedFilePath)) {
-            const content = fs.readFileSync(resolvedFilePath).toString();
-            const responseHeaders = {
-              "Content-Type": "application/octet-stream",
-              "Content-Length": content.length,
-            };
-            socket.write(getResponse(responseHeaders, content));
-          } else {
-            socket.write(httpResponse("404 Not Found"));
-          }
-          break;
-        case "POST":
-          const body = splitedRequest[splitedRequest.length - 1];
-          fs.writeFileSync(resolvedFilePath, body);
-          socket.write(httpResponse("201 Created"));
-          break;
-        default:
-          break;
+      if (fs.existsSync(resolvedFilePath)) {
+        const content = fs.readFileSync(resolvedFilePath).toString();
+        const responseHeaders = {
+          "Content-Type": "application/octet-stream",
+          "Content-Length": content.length,
+        };
+        socket.write(getResponse(responseHeaders, content));
+      } else {
+        socket.write(httpResponse("404 Not Found"));
       }
+    } else if (requestTarget.startsWith("/files" && requestMethod === "POST")) {
+      const body = splitedRequest[splitedRequest.length - 1];
+      fs.writeFileSync(resolvedFilePath, body);
+      socket.write(httpResponse("201 Created"));
     } else {
       socket.write(httpResponse("404 Not Found"));
     }
