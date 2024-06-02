@@ -61,7 +61,7 @@ const server = net.createServer((socket) => {
       } else {
         socket.write(httpResponse("404 Not Found"));
       }
-    } else if (requestTarget.startsWith("/files" && requestMethod === "POST")) {
+    } else if (requestTarget.startsWith("/files") && requestMethod === "POST") {
       const body = splitedRequest[splitedRequest.length - 1];
       fs.writeFileSync(resolvedFilePath, body);
       socket.write(httpResponse("201 Created"));
