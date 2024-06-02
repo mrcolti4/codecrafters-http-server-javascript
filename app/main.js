@@ -53,7 +53,6 @@ const server = net.createServer((socket) => {
       const resolvedFilePath = path.resolve(directory, requestFilePath);
       switch (requestMethod) {
         case "GET":
-          console.log(requestMethod);
           if (fs.existsSync(resolvedFilePath)) {
             const content = fs.readFileSync(resolvedFilePath).toString();
             const responseHeaders = {
