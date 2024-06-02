@@ -1,61 +1,82 @@
 const net = require("net");
 const fs = require("fs");
+const path = require("path");
 // You can use print statements as follows for debugging, they'll be visible when running tests.
-console.log("Logs from your program will appear here!");
-const parseRequest = (requestData) => {
-  const request = requestData.toString().split("\r\n");
-  const [method, path, protocol] = request[0].split(" ");
-  const headers = {};
-  request.slice(1).forEach((header) => {
-    const [key, value] = header.split(" ");
-    if (key && value) {
-      headers[key] = value;
+// console.log("Logs from your program will appear here!");
+
+// Uncomment this to pass the first stage
+function getResponse(headers, body) {
+  let response = "HTTP/1.1 200 OK\r\n";
+  for (const [key, value] of Object.entries(headers)) {
+    response += `${key}: ${value}\r\n`;
+  }
+  response += "\r\n";
+  response += body;
+  return response;
+}
+
+function httpResponse(message) {
+  return `HTTP/1.1 ${message}\r\n\r\n`;
+}
+
+const server = net.createServer((socket) => {
+  socket.on("data", async (data) => {
+    const request = data.toString();
+    const splitedRequest = request.split("\r\n");
+    const requestMethod = splitedRequest[0].split(" ")[0];
+    const requestTarget = splitedRequest[0].split(" ")[1];
+
+    if (requestTarget === "/") {
+      socket.write(httpResponse("200 OK"));
+    } else if (requestTarget.startsWith("/echo/")) {
+      const paramText = requestTarget.split("/echo/")[1];
+      const headers = {
+        "Content-Type": "text/plain",
+        "Content-Length": paramText.length,
+      };
+      const response = getResponse(headers, "");
+      socket.write(response);
+    } else if (requestTarget.startsWith("/user-agent")) {
+      const userAgent = splitedRequest
+        .find((value) => value.startsWith("User-Agent"))
+        ?.split(": ")[1];
+
+      const responseHeaders = {
+        "Content-Type": "text/plain",
+        "Content-Length": userAgent?.length,
+      };
+      const response = getResponse(responseHeaders, userAgent);
+      socket.write(response);
+    } else if (requestTarget.startsWith("/files") && requestMethod === "GET") {
+      const requestFilePath = requestTarget.split("/")[2];
+      const directory = process.argv[3];
+      const resolvedFilePath = path.resolve(directory, requestFilePath);
+      if (fs.existsSync(resolvedFilePath)) {
+        const content = fs.readFileSync(resolvedFilePath).toString();
+        const responseHeaders = {
+          "Content-Type": "application/octet-stream",
+          "Content-Length": content.length,
+        };
+        socket.write(getResponse(responseHeaders, content));
+      } else {
+        socket.write(httpResponse("404 Not Found"));
+      }
+    } else if (requestTarget.startsWith("/files") && requestMethod === "POST") {
+      const requestFilePath = requestTarget.split("/")[2];
+      const directory = process.argv[3];
+      const resolvedFilePath = path.resolve(directory, requestFilePath);
+
+      const body = splitedRequest[splitedRequest.length - 1];
+      fs.writeFileSync(resolvedFilePath, body);
+      socket.write(httpResponse("201 Created"));
+    } else {
+      socket.write(httpResponse("404 Not Found"));
     }
   });
-  return { method, path, protocol, headers };
-};
-const OK_RESPONSE = "HTTP/1.1 200 OK\r\n\r\n";
-const ERROR_RESPONSE = "HTTP/1.1 404 Not found\r\n\r\n";
-const server = net.createServer((socket) => {
-  socket.on("data", (data) => {
-    const request = parseRequest(data);
-    const { method, path, protocol, headers } = request;
-    if (path === "/") {
-      socket.write(OK_RESPONSE);
-    } else if (path.startsWith("/echo")) {
-      const randomString = path.substring(6);
-      socket.write(
-        `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${randomString.length}\r\n\r\n${randomString}`,
-      );
-    } else if (path.startsWith("/user-agent")) {
-      const agent = request.headers["User-Agent:"];
-      socket.write(
-        `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${agent.length}\r\n\r\n${agent}`,
-      );
-    } else if (path.startsWith("/files/")) {
-    } else if (path.startsWith("/files/") && method === "GET") {
-      const fileName = path.replace("/files/", "").trim();
-      const filePath = process.argv[3] + fileName;
-      const isExist = fs.readdirSync(process.argv[3]).some((file) => {
-        return file === fileName;
-      });
-      if (isExist) {
-        const content = fs.readFileSync(filePath, "utf-8");
-        socket.write(
-          `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${content.length}\r\n\n${content}`,
-        );
-      } else {
-        socket.write(ERROR_RESPONSE);
-        1;
-      }
-    } else if (path.startsWith("/files/") && method === "POST") {
-      const filename = process.argv[3] + "/" + path.substring(7);
-      const req = data.toString().split("\r\n");
-      const body = req[req.length - 1];
-      fs.writeFileSync(filename, body);
-      socket.write(`HTTP/1.1 201 CREATED\r\n\r\n`);
-    } else socket.write(ERROR_RESPONSE);
+  socket.on("close", () => {
     socket.end();
+    server.close();
   });
 });
+
 server.listen(4221, "localhost");
